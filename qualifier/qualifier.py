@@ -13,8 +13,7 @@ def make_horizontal_rule(column_widths: List[int], which: str = "top"):
     borders = BORDER[which]
     return (
         borders[0]
-        + borders[1].join(HORIZONTAL *
-                          column_width for column_width in column_widths)
+        + borders[1].join(HORIZONTAL * column_width for column_width in column_widths)
         + borders[2]
     )
 
@@ -41,7 +40,7 @@ def make_table(
     processed_rows = [
         VERTICAL
         + VERTICAL.join(
-            " " + str(col) + " " * (column_width - len(str(col)) - 1)
+            pad_column(col, column_width, centered)
             for col, column_width in zip(row, column_widths)
         )
         + VERTICAL
@@ -56,6 +55,13 @@ def make_table(
             make_horizontal_rule(column_widths, "bottom"),
         ]
     )
+
+
+def pad_column(col: Any, column_width: int, centered: bool) -> str:
+    if not centered:
+        return " " + str(col) + " " * (column_width - len(str(col)) - 1)
+    if centered:
+        return ""
 
 
 if __name__ == "__main__":
@@ -74,5 +80,17 @@ if __name__ == "__main__":
             ["Joe", -12, "Idk Tbh"],
         ],
         labels=["User", "Messages", "Role"],
+    )
+    print(table)
+
+    table = make_table(
+        rows=[
+            ["Ducky Yellow", 3],
+            ["Ducky Dave", 12],
+            ["Ducky Tube", 7],
+            ["Ducky Lemon", 1],
+        ],
+        labels=["Name", "Duckiness"],
+        centered=True,
     )
     print(table)
