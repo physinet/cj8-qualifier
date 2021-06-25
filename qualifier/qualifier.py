@@ -1,3 +1,4 @@
+import math
 from typing import Any, List, Optional
 
 BORDER = {
@@ -9,7 +10,8 @@ VERTICAL = "│"
 HORIZONTAL = "─"
 
 
-def make_horizontal_rule(column_widths: List[int], which: str = "top"):
+def make_horizontal_rule(column_widths: List[int], which: str):
+    """Makes a horizontal rule with the set of left, column, and right borders labeled by `which`"""
     borders = BORDER[which]
     return (
         borders[0]
@@ -28,15 +30,18 @@ def make_table(
     :param centered: If the items should be aligned to the center, else they are left aligned.
     :return: A table representing the rows passed in.
     """
-    n_cols = len(rows[0])
+    assert len(set(n_cols := len(row) for row in rows)) == 1
 
     if labels:
+        assert n_cols == len(labels)
         rows = [labels] + rows
 
     column_widths = [0] * n_cols
     for i, cols in enumerate(zip(*rows)):
+        # each column will be as wide as the longest string, plus two spaces on either side
         column_widths[i] = max(len(str(col)) for col in cols) + 2
 
+    # each row of text starts and ends with vertical bars and is separated by vertical bars
     processed_rows = [
         VERTICAL
         + VERTICAL.join(
@@ -46,6 +51,8 @@ def make_table(
         + VERTICAL
         for row in rows
     ]
+
+    # make the final table: top rule, header row, header rule, rows, bottom rule
     return "\n".join(
         [
             make_horizontal_rule(column_widths, "top"),
@@ -57,12 +64,17 @@ def make_table(
     )
 
 
-def pad_column(col: Any, column_width: int, centered: bool) -> str:
-    if not centered:
-        return " " + str(col) + " " * (column_width - len(str(col)) - 1)
-    if centered:
-        return ""
-
+def pad_column(column_object: Any, column_width: int, centered: bool) -> str:
+    """Pads the string representation of column_object up to `column_width` using the given formatting 
+    rule (centered or not centered). Extra spaces for unevenly centered columns pad to the right.
+    """
+    column_text = f" {column_object} "  # padded by at least one space on either side
+    pad = (column_width - len(column_text))
+    if not centered:  # left justified, pad to the right
+        return column_text + " " * pad
+    if centered:  # centered, pad evenly on both sides, extra spaces on the right
+        left_pad, right_pad = pad // 2, math.ceil(pad / 2)
+        return " " * left_pad + column_text + " " * right_pad
 
 if __name__ == "__main__":
 
