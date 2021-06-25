@@ -1,4 +1,5 @@
 import math
+from itertools import zip_longest
 from typing import Any, List, Optional
 
 BORDER = {
@@ -32,52 +33,51 @@ def make_table(
     """
     assert len(set(n_cols := len(row) for row in rows)) == 1
 
-    if labels:
+    if labels := labels or []:
         assert n_cols == len(labels)
-        rows = [labels] + rows
 
     column_widths = [0] * n_cols
-    for i, cols in enumerate(zip(*rows)):
+    for i, cols in enumerate(zip_longest(labels, *rows)):
         # each column will be as wide as the longest string, plus two spaces on either side
         column_widths[i] = max(len(str(col)) for col in cols) + 2
 
-    # each row of text starts and ends with vertical bars and is separated by vertical bars
-    processed_rows = [
-        VERTICAL
-        + VERTICAL.join(
-            pad_column(col, column_width, centered)
-            for col, column_width in zip(row, column_widths)
-        )
-        + VERTICAL
-        for row in rows
-    ]
 
-    # make the final table: top rule, header row, header rule, rows, bottom rule
+    # final table: top rule, header row (if labels given), header rule (if labels given), rows, bottom rule
     return "\n".join(
-        [
-            make_horizontal_rule(column_widths, "top"),
-            processed_rows[0],
-            make_horizontal_rule(column_widths, "header"),
-            *processed_rows[1:],
-            make_horizontal_rule(column_widths, "bottom"),
-        ]
+        [make_horizontal_rule(column_widths, "top")]
+        + ([process_row(labels, column_widths, centered)] if labels else [])
+        + ([make_horizontal_rule(column_widths, "header")] if labels else [])
+        + [process_row(row, column_widths, centered) for row in rows]
+        + [make_horizontal_rule(column_widths, "bottom")]
     )
 
 
 def pad_column(column_object: Any, column_width: int, centered: bool) -> str:
-    """Pads the string representation of column_object up to `column_width` using the given formatting 
+    """Pads the string representation of column_object up to `column_width` using the given formatting
     rule (centered or not centered). Extra spaces for unevenly centered columns pad to the right.
     """
     column_text = f" {column_object} "  # padded by at least one space on either side
-    pad = (column_width - len(column_text))
+    pad = column_width - len(column_text)
     if not centered:  # left justified, pad to the right
         return column_text + " " * pad
     if centered:  # centered, pad evenly on both sides, extra spaces on the right
         left_pad, right_pad = pad // 2, math.ceil(pad / 2)
         return " " * left_pad + column_text + " " * right_pad
 
-if __name__ == "__main__":
 
+def process_row(row: List[Any], column_widths: List[int], centered: bool) -> List[str]:
+    """Returns the string representation of each row. Each column is separated by vertical bars"""
+    return (
+        VERTICAL
+        + VERTICAL.join(
+            pad_column(col, column_width, centered)
+            for col, column_width in zip(row, column_widths)
+        )
+        + VERTICAL
+    )
+
+
+if __name__ == "__main__":
     table = make_table(
         rows=[["Lemon"], ["Sebastiaan"], ["KutieKatj9"], ["Jake"], ["Not Joe"]]
     )
