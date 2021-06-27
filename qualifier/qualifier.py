@@ -16,7 +16,9 @@ def make_horizontal_rule(column_widths: List[int], which: str):
     borders = BORDER[which]
     return (
         borders[0]
-        + borders[1].join(HORIZONTAL * column_width for column_width in column_widths)
+        + borders[1].join(
+            HORIZONTAL * (column_width + 2) for column_width in column_widths  # +2 for padding
+        )
         + borders[2]
     )
 
@@ -31,17 +33,19 @@ def make_table(
     :param centered: If the items should be aligned to the center, else they are left aligned.
     :return: A table representing the rows passed in.
     """
+    # Make sure all rows have the same number of columns
     assert len(set(n_cols := len(row) for row in rows)) == 1
+    column_widths = [0] * n_cols
 
     if labels := labels or []:
         assert n_cols == len(labels)
 
-    column_widths = [0] * n_cols
-    for i, cols in enumerate(zip_longest(labels, *rows)):
-        # each column will be as wide as the longest string, plus two spaces on either side
-        column_widths[i] = max(len(str(col)) for col in cols) + 2
-
-
+    cols = list(zip(*rows))  # transpose the rows so we can iterate over columns
+    for i in range(n_cols):
+        len_label = 0 if not labels else len(str(labels[i]))
+        # each column will be as wide as the longest label or row string, excluding padding
+        column_widths[i] = max(len_label, *(len(str(obj)) for obj in cols[i]))
+    
     # final table: top rule, header row (if labels given), header rule (if labels given), rows, bottom rule
     return "\n".join(
         [make_horizontal_rule(column_widths, "top")]
@@ -57,7 +61,7 @@ def pad_column(column_object: Any, column_width: int, centered: bool) -> str:
     rule (centered or not centered). Extra spaces for unevenly centered columns pad to the right.
     """
     column_text = f" {column_object} "  # padded by at least one space on either side
-    pad = column_width - len(column_text)
+    pad = column_width + 2 - len(column_text)  # number of additional spaces we need to pad with
     if not centered:  # left justified, pad to the right
         return column_text + " " * pad
     if centered:  # centered, pad evenly on both sides, extra spaces on the right
@@ -106,3 +110,23 @@ if __name__ == "__main__":
         centered=True,
     )
     print(table)
+
+    table = make_table(
+        rows=[
+                ["Apple", 5],
+                ["Banana", 3],
+                ["Cherry", 7],
+        ],
+        centered=True,
+    )
+    print(table)
+
+    table = make_table(
+        rows=[
+            [None, 1, 2.5, None, 32j, '123'],
+        ],
+        labels=[3, None, 12, "A", 12.6, 12j],
+        centered=True
+    )
+    print(table)
+                    
